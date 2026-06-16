@@ -55,7 +55,7 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        external: ['bufferutil', 'utf-8-validate', 'electron', ...mainExternalDependencies],
+        external: ['bufferutil', 'utf-8-validate', 'electron', '@electron-toolkit/utils', ...mainExternalDependencies],
         output: {
           manualChunks: undefined, // 彻底禁用代码分割 - 返回 null 强制单文件打包
           inlineDynamicImports: true // 内联所有动态导入，这是关键配置
@@ -102,6 +102,11 @@ export default defineConfig({
     }
   },
   renderer: {
+    server: {
+      host: '127.0.0.1',
+      port: 12121,
+      strictPort: true
+    },
     plugins: [
       tanstackRouter({
         target: 'react',

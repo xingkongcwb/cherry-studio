@@ -34,14 +34,17 @@ interface FileInfo {
  * Until that refactor, keep `app.getPath(...)` here.
  */
 class ObsidianVaultService {
-  private obsidianConfigPath: string
+  private _obsidianConfigPath: string | null = null
 
-  constructor() {
+  private get obsidianConfigPath(): string {
+    if (this._obsidianConfigPath !== null) {
+      return this._obsidianConfigPath
+    }
     // 根据操作系统获取Obsidian配置文件路径
     if (isWin) {
-      this.obsidianConfigPath = path.join(app.getPath('appData'), 'obsidian', 'obsidian.json')
+      this._obsidianConfigPath = path.join(app.getPath('appData'), 'obsidian', 'obsidian.json')
     } else if (isMac) {
-      this.obsidianConfigPath = path.join(
+      this._obsidianConfigPath = path.join(
         app.getPath('home'),
         'Library',
         'Application Support',
@@ -50,9 +53,10 @@ class ObsidianVaultService {
       )
     } else {
       // Linux
-      this.obsidianConfigPath = this.resolveLinuxObsidianConfigPath()
-      logger.debug(`Resolved Obsidian config path (linux): ${this.obsidianConfigPath}`)
+      this._obsidianConfigPath = this.resolveLinuxObsidianConfigPath()
+      logger.debug(`Resolved Obsidian config path (linux): ${this._obsidianConfigPath}`)
     }
+    return this._obsidianConfigPath
   }
 
   /**

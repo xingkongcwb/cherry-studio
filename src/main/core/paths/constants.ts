@@ -29,5 +29,16 @@ export const BOOT_CONFIG_PATH = path.join(CHERRY_HOME, 'boot-config.json')
  *
  * Single source of truth — referenced by LoggerService directly and exposed
  * via pathRegistry as the `app.logs` key for `application.getPath()` consumers.
+ *
+ * NOTE: Lazy getter to work around Node.js v24.14+ compatibility issue where
+ * `app` may be undefined at module import time. The getter is safe because
+ * consumers only access LOGS_DIR after Electron's app module is ready.
  */
-export const LOGS_DIR = app.getPath('logs')
+export const LOGS_DIR = (() => {
+  const logsDir = app?.getPath?.('logs')
+  if (!logsDir) {
+    // Fallback: use CHERRY_HOME + 'logs' if app is not ready yet
+    return path.join(os.homedir(), CHERRY_HOME_DIRNAME, 'logs')
+  }
+  return logsDir
+})()

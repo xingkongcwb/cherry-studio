@@ -78,34 +78,6 @@ export class LoggerService {
     // source of truth (see src/main/core/paths/constants.ts).
     this.logsDir = LOGS_DIR
 
-    // env variables, only used in dev / diagnostics (CS_DIAGNOSTICS) mode
-    // only affect console output, not affect file output
-    if (DEV_LOGGING) {
-      // load env level if exists
-      if (
-        process.env.CSLOGGER_MAIN_LEVEL &&
-        Object.values(LEVEL).includes(process.env.CSLOGGER_MAIN_LEVEL as LogLevel)
-      ) {
-        this.envLevel = process.env.CSLOGGER_MAIN_LEVEL as LogLevel
-
-        console.log(colorText(`[LoggerService] env CSLOGGER_MAIN_LEVEL loaded: ${this.envLevel}`, 'BLUE'))
-      }
-
-      // load env show module if exists
-      if (process.env.CSLOGGER_MAIN_SHOW_MODULES) {
-        const showModules = process.env.CSLOGGER_MAIN_SHOW_MODULES.split(',')
-          .map((module) => module.trim())
-          .filter((module) => module !== '')
-        if (showModules.length > 0) {
-          this.envShowModules = showModules
-
-          console.log(
-            colorText(`[LoggerService] env CSLOGGER_MAIN_SHOW_MODULES loaded: ${this.envShowModules.join(' ')}`, 'BLUE')
-          )
-        }
-      }
-    }
-
     // Configure transports based on environment
     const transports: winston.transport[] = []
 
@@ -150,8 +122,63 @@ export class LoggerService {
       console.error('LoggerService fatal error:', error)
     })
 
-    //register ipc handler, for renderer process to log to main process
-    this.registerIpcHandler()
+    // Defer IPC handler registration until Electron's app module is ready.
+    // In Electron v41 + Node.js v24.14+, `electron` named exports (ipcMain, app)
+    // may be undefined at module import time. This deferred initialization
+    // ensures we only register IPC after the app module is fully initialized.
+    this.registerIpcHandlerDeferred()
+
+    // env variables, only used in dev / diagnostics (CS_DIAGNOSTICS) mode
+    // only affect console output, not affect file output
+    if (DEV_LOGGING) {
+      // load env level if exists
+      if (
+        process.env.CSLOGGER_MAIN_LEVEL &&
+        Object.values(LEVEL).includes(process.env.CSLOGGER_MAIN_LEVEL as LogLevel)
+      ) {
+        this.envLevel = process.env.CSLOGGER_MAIN_LEVEL as LogLevel
+
+        console.log(colorText(`[LoggerService] env CSLOGGER_MAIN_LEVEL loaded: ${this.envLevel}`, 'BLUE'))
+      }
+
+      // load env show module if exists
+      if (process.env.CSLOGGER_MAIN_SHOW_MODULES) {
+        const showModules = process.env.CSLOGGER_MAIN_SHOW_MODULES.split(',')
+          .map((module) => module.trim())
+          .filter((module) => module !== '')
+        if (showModules.length > 0) {
+          this.envShowModules = showModules
+
+          console.log(
+            colorText(`[LoggerService] env CSLOGGER_MAIN_SHOW_MODULES loaded: ${this.envShowModules.join(' ')}`, 'BLUE')
+          )
+        }
+      }
+    }
+  }
+
+  /**
+   * Deferred IPC handler registration to work around Electron v41 + Node.js v24.14+
+   * compatibility issue where `ipcMain` may be undefined at module load time.
+   * Uses dynamic import to re-import the module after it's fully initialized.
+   */
+  private registerIpcHandlerDeferred(): void {
+    // Try to register synchronously first (normal Electron behavior)
+    if (ipcMain?.handle) {
+      this.registerIpcHandler()
+      return
+    }
+
+    // If ipcMain is not ready yet, defer registration until app is ready.
+    // In Electron v41 + Node.js v24.14+, the `electron` module may have
+    // undefined named exports at module load time.
+    if (app) {
+      // app.whenReady() always exists on a valid app object
+      const readyPromise = app.whenReady()
+      Promise.resolve(readyPromise).then(() => {
+        this.registerIpcHandler()
+      })
+    }
   }
 
   /**
@@ -378,6 +405,10 @@ export class LoggerService {
    * Register IPC handler for renderer process logging
    */
   private registerIpcHandler(): void {
+    if (!ipcMain?.handle) {
+      console.warn('[LoggerService] ipcMain.handle not available, IPC logging disabled')
+      return
+    }
     ipcMain.handle(
       IpcChannel.App_LogToMain,
       (_, source: LogSourceWithContext, level: LogLevel, message: string, data: any[]) => {

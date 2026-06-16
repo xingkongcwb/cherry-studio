@@ -1,0 +1,11 @@
+14191:		"app.database.migrations": electron.app.isPackaged ? node_path.default.join(appExtraResources, "migrations/sqlite-drizzle") : node_path.default.join(__dirname, "../../migrations/sqlite-drizzle"),
+14192:		"feature.provider_registry.data": electron.app.isPackaged ? node_path.default.join(appExtraResources, "provider-registry") : node_path.default.join(__dirname, "../../packages/provider-registry/data"),
+16382:			if (isDev || !electron.app.isPackaged) {
+172134:					isPackaged: electron.app.isPackaged,
+241271:	if (!electron.app.isPackaged) return filePath;
+542385:			import_main.autoUpdater.forceDevUpdateConfig = !electron.app.isPackaged;
+563957:	if (!electron.app.isPackaged) {
+565871:			migrationsFolder: electron.app.isPackaged ? node_path.default.join(process.resourcesPath, MIGRATIONS_BASE_PATH) : node_path.default.join(__dirname, "../../", MIGRATIONS_BASE_PATH)
+628783:		if (isDev || !electron.app.isPackaged) {
+652840:		isPackaged: electron.app.isPackaged,
+653334:		return electron.app.isPackaged ? "packaged" : "unpackaged";

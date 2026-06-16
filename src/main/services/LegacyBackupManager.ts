@@ -52,8 +52,22 @@ interface ProgressData {
 }
 
 class BackupManager {
-  private tempDir = path.join(app.getPath('temp'), 'cherry-studio', 'backup', 'temp')
-  private backupDir = path.join(app.getPath('temp'), 'cherry-studio', 'backup')
+  private _tempDir: string | null = null
+  private _backupDir: string | null = null
+
+  private get tempDir(): string {
+    if (this._tempDir === null) {
+      this._tempDir = path.join(app.getPath('temp'), 'cherry-studio', 'backup', 'temp')
+    }
+    return this._tempDir
+  }
+
+  private get backupDir(): string {
+    if (this._backupDir === null) {
+      this._backupDir = path.join(app.getPath('temp'), 'cherry-studio', 'backup')
+    }
+    return this._backupDir
+  }
 
   // Cached instance to avoid recreating
   private s3Storage: S3Storage | null = null
